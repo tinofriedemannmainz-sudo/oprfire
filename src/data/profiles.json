@@ -1,0 +1,6 @@
+{
+  "defaults": {
+    "A": { "type": "infantry", "hp": 3, "move": 3, "range": 2, "dmg": 1, "image": "/assets/units/ratmen-bard.png" },
+    "B": { "type": "infantry", "hp": 3, "move": 3, "range": 2, "dmg": 1, "image": "/assets/units/vinci-biggun.png" }
+  }
+}

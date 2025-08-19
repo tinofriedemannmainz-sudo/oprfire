@@ -1,0 +1,48 @@
+{
+	"id": "aliens",
+	"name": "Alien Hive",
+	"units": [
+		{
+			"type": "claw",
+			"image": "/assets/units/Hive-Druzhak.png",
+			"hp": 6,
+			"move": 6,
+			"count": 1,
+			"quality": 4,
+			"defense": 4,
+			"weapons": [
+				{
+					"name": "Carapace Fist",
+					"range": 1,
+					"dmg": 1,
+					"hits": 2,
+					"specials": ["AP(4)"]
+				},
+				{
+					"name": "Fierceclaw Sword",
+					"range": 1,
+					"dmg": 1,
+					"hits": 6,
+					"specials": ["AP(1)", "Rending"]
+				}
+			]
+		},
+		{
+			"type": "spitter",
+			"image": "/assets/units/Hive-Soul-Snatchers.png",
+			"hp": 1,
+			"move": 8,
+			"count": 6,
+			"quality": 5,
+			"defense": 5,
+			"weapons": [
+				{
+					"name": "Razor Claws",
+					"range": 1,
+					"dmg": 1,
+					"hits": 2
+				}
+			]
+		}
+	]
+}
