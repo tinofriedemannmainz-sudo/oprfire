@@ -4,136 +4,119 @@ export class Board {
 		this.rows = rows;
 		this.tile = tile;
 		// simple per-tile terrain: 'plain' | 'cover' | 'difficult' | 'dangerous' | 'blocker'
-		this.terrain = Array.from({ length: rows }, () =>
-			Array.from({ length: cols }, () => 'plain')
-		);
-	}
-	key(x, y) {
-		return `${x},${y}`;
-	}
-	inside(x, y) {
-		return x >= 0 && y >= 0 && x < this.cols && y < this.rows;
-	}
-	chebyshev(a, b) {
-		return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+		this.terrain = Array.from({ length: rows }, () => Array.from({ length: cols }, () => 'plain'));
 	}
 
-	setTerrain(x, y, kind) {
-		if (this.inside(x, y)) this.terrain[y][x] = kind;
+	key(hex) {
+		return `${hex.q},${hex.r}`;
 	}
-	getTerrain(x, y) {
-		return this.inside(x, y) ? this.terrain[y][x] : 'plain';
+
+	inside(hex) {
+		return hex.q >= 0 && hex.r >= 0 && hex.q < this.cols && hex.r < this.rows;
 	}
-	isCover(x, y) {
-		return this.getTerrain(x, y) === 'cover';
+
+	hexDistance(a, b) {
+		return (Math.abs(a.q - b.q) + Math.abs(a.q + a.r - b.q - b.r) + Math.abs(a.r - b.r)) / 2;
 	}
-	isDifficult(x, y) {
-		return this.getTerrain(x, y) === 'difficult';
+
+	setTerrain(hex, kind) {
+		if (this.inside(hex)) this.terrain[hex.r][hex.q] = kind;
 	}
-	isDangerous(x, y) {
-		return this.getTerrain(x, y) === 'dangerous';
+
+	getTerrain(hex) {
+		return this.inside(hex) ? this.terrain[hex.r][hex.q] : 'plain';
 	}
+
+	isCover(hex) {
+		return this.getTerrain(hex) === 'cover';
+	}
+
+	isDifficult(hex) {
+		return this.getTerrain(hex) === 'difficult';
+	}
+
+	isDangerous(hex) {
+		return this.getTerrain(hex) === 'dangerous';
+	}
+
 	clearTerrain() {
-		for (let y = 0; y < this.rows; y++)
-			for (let x = 0; x < this.cols; x++) this.terrain[y][x] = 'plain';
+		for (let r = 0; r < this.rows; r++)
+			for (let q = 0; q < this.cols; q++) this.terrain[r][q] = 'plain';
 	}
-	isBlocker(x, y) {
-		return this.getTerrain(x, y) === 'blocker';
+
+	isBlocker(hex) {
+		return this.getTerrain(hex) === 'blocker';
 	}
-	// movement cost (orthogonal moves only in this game)
-	moveCost(x, y) {
-		const k = this.getTerrain(x, y);
+
+	moveCost(hex) {
+		const k = this.getTerrain(hex);
 		if (k === 'blocker') return Infinity; // impassable
 		if (k === 'difficult') return 2; // slower
 		return 1; // plain, cover, dangerous
 	}
 
-	// Bresenham line (tiles strictly between a and b, excludes endpoints)
-	lineTiles(ax, ay, bx, by) {
-		let x0 = ax,
-			y0 = ay,
-			x1 = bx,
-			y1 = by;
-		const dx = Math.abs(x1 - x0),
-			dy = Math.abs(y1 - y0);
-		const sx = x0 < x1 ? 1 : -1,
-			sy = y0 < y1 ? 1 : -1;
-		let err = dx - dy;
-		const tiles = [];
-		while (!(x0 === x1 && y0 === y1)) {
-			const e2 = 2 * err;
-			if (e2 > -dy) {
-				err -= dy;
-				x0 += sx;
-			}
-			if (e2 < dx) {
-				err += dx;
-				y0 += sy;
-			}
-			if (x0 === x1 && y0 === y1) break; // exclude target
-			tiles.push([x0, y0]);
-		}
-		return tiles;
+	hexNeighbors(hex) {
+		const directions = [
+			{ q: +1, r: 0 }, { q: +1, r: -1 }, { q: 0, r: -1 },
+			{ q: -1, r: 0 }, { q: -1, r: +1 }, { q: 0, r: +1 }
+		];
+		return directions.map(dir => ({ q: hex.q + dir.q, r: hex.r + dir.r }));
 	}
-	/**
-	 * Randomly scatter terrain. Densities are probabilities per tile.
-	 * keepEdges: how many columns on each side to keep clear for deployment.
-	 */
-	randomizeTerrain({
-		cover = 0.12,
-		difficult = 0.08,
-		dangerous = 0.05,
-		blocker = 0.06,
-		keepEdges = 2,
-	} = {}) {
+
+	lineTiles(hexStart, hexEnd) {
+		let hex = hexStart;
+		const results = [];
+		const N = this.hexDistance(hexStart, hexEnd);
+		for (let i = 0; i <= N; i++) {
+			results.push(hex);
+			hex = this.hexLerp(hexStart, hexEnd, (i + 1) / (N + 1));
+		}
+		return results.slice(1, -1);  // exclude start and end tiles, only between.
+	}
+
+	hexLerp(a, b, t) {
+		const q = a.q + (b.q - a.q) * t;
+		const r = a.r + (b.r - a.r) * t;
+		return { q: Math.round(q), r: Math.round(r) };
+	}
+
+	randomizeTerrain({ cover = 0.12, difficult = 0.08, dangerous = 0.05, blocker = 0.06, keepEdges = 2 } = {}) {
 		this.clearTerrain();
-		for (let y = 0; y < this.rows; y++) {
-			for (let x = 0; x < this.cols; x++) {
-				// keep deployment edges clear
-				if (x < keepEdges || x >= this.cols - keepEdges) continue;
+		for (let r = 0; r < this.rows; r++) {
+			for (let q = 0; q < this.cols; q++) {
+				if (q < keepEdges || q >= this.cols - keepEdges) continue;
 				const r = Math.random();
-				if (r < blocker) this.terrain[y][x] = 'blocker';
-				else if (r < blocker + cover) this.terrain[y][x] = 'cover';
-				else if (r < blocker + cover + difficult)
-					this.terrain[y][x] = 'difficult';
-				else if (r < blocker + cover + difficult + dangerous)
-					this.terrain[y][x] = 'dangerous';
+				if (r < blocker) this.terrain[r][q] = 'blocker';
+				else if (r < blocker + cover) this.terrain[r][q] = 'cover';
+				else if (r < blocker + cover + difficult) this.terrain[r][q] = 'difficult';
+				else if (r < blocker + cover + difficult + dangerous) this.terrain[r][q] = 'dangerous';
 			}
 		}
 	}
-	// Reachable tiles with terrain costs (Dijkstra, 4-neighbour)
+
 	movableTiles(unit, occupied) {
 		const maxCost = unit.move;
-		const startKey = this.key(unit.x, unit.y);
+		const startKey = this.key({ q: unit.q, r: unit.r });
 		const dist = new Map([[startKey, 0]]);
-		const open = [{ x: unit.x, y: unit.y, cost: 0 }];
+		const open = [{ q: unit.q, r: unit.r, cost: 0 }];
 		const s = new Set();
-		const dirs = [
-			[1, 0],
-			[-1, 0],
-			[0, 1],
-			[0, -1],
-		];
 		while (open.length) {
-			// pop min cost (small board -> linear is fine)
 			let best = 0;
 			for (let i = 1; i < open.length; i++)
 				if (open[i].cost < open[best].cost) best = i;
 			const cur = open.splice(best, 1)[0];
-			for (const [dx, dy] of dirs) {
-				const nx = cur.x + dx,
-					ny = cur.y + dy;
-				if (!this.inside(nx, ny)) continue;
-				const key = this.key(nx, ny);
+			for (const neighbor of this.hexNeighbors(cur)) {
+				if (!this.inside(neighbor)) continue;
+				const key = this.key(neighbor);
 				if (occupied.has(key)) continue;
-				const step = this.moveCost(nx, ny);
-				if (!Number.isFinite(step)) continue; // impassable (blocker)
+				const step = this.moveCost(neighbor);
+				if (!Number.isFinite(step)) continue;
 				const nc = cur.cost + step;
 				if (nc > maxCost) continue;
 				const old = dist.get(key);
 				if (old == null || nc < old) {
 					dist.set(key, nc);
-					open.push({ x: nx, y: ny, cost: nc });
+					open.push({ q: neighbor.q, r: neighbor.r, cost: nc });
 					if (key !== startKey) s.add(key);
 				}
 			}
