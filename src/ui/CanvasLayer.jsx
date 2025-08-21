@@ -155,11 +155,30 @@ export default function CanvasLayer({
 
 		const TILE = board.tile * scale;
 
+		// Function to draw a hexagon
+		const drawHexagon = (ctx, x, y, size) => {
+			const sideLength = size / 2;
+			const width = Math.sqrt(3) * sideLength;
+			const height = 2 * sideLength;
+			ctx.beginPath();
+			for (let i = 0; i < 6; i++) {
+				const angle = (Math.PI / 3) * i;
+				const newX = x + width * Math.cos(angle);
+				const newY = y + height * Math.sin(angle);
+				if (i === 0) {
+					ctx.moveTo(newX, newY);
+				} else {
+					ctx.lineTo(newX, newY);
+				}
+			}
+			ctx.closePath();
+		};
+
 		// Background
 		ctx.fillStyle = '#0b0b0b';
 		ctx.fillRect(0, 0, size.width, size.height);
 
-		// --- Terrain tiles (subtle tints) ---
+		// --- Terrain hexagons (subtle tints) ---
 		const terrainFill = {
 			cover: 'rgba(34,197,94,0.15)', // green
 			difficult: 'rgba(168,85,33,0.15)', // brown
@@ -172,7 +191,10 @@ export default function CanvasLayer({
 					const kind = board.getTerrain(x, y);
 					if (kind && kind !== 'plain') {
 						ctx.fillStyle = terrainFill[kind] || 'rgba(255,255,255,0.08)';
-						ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+						const hexX = x * TILE * 0.75;
+						const hexY = y * TILE * Math.sqrt(3) / 2;
+						drawHexagon(ctx, hexX, hexY, TILE);
+						ctx.fill();
 						// hatch for hard-ish terrain
 						if (
 							kind === 'difficult' ||
@@ -181,9 +203,8 @@ export default function CanvasLayer({
 						) {
 							ctx.strokeStyle = 'rgba(255,255,255,0.06)';
 							ctx.lineWidth = 1;
-							ctx.beginPath();
-							ctx.moveTo(x * TILE + 4, y * TILE + TILE - 4);
-							ctx.lineTo(x * TILE + TILE - 4, y * TILE + 4);
+							ctx.moveTo(hexX + TILE * 0.2, hexY + TILE * 0.3);
+							ctx.lineTo(hexX + TILE * 0.5, hexY + TILE * 0.1);
 							ctx.stroke();
 						}
 					}
@@ -195,36 +216,33 @@ export default function CanvasLayer({
 		if (gridVisible) {
 			ctx.strokeStyle = '#1f2937';
 			ctx.lineWidth = 1;
-			for (let x = 0; x <= board.cols; x++) {
-				const px = x * TILE;
-				ctx.beginPath();
-				ctx.moveTo(px, 0);
-				ctx.lineTo(px, size.height);
-				ctx.stroke();
-			}
-			for (let y = 0; y <= board.rows; y++) {
-				const py = y * TILE;
-				ctx.beginPath();
-				ctx.moveTo(0, py);
-				ctx.lineTo(size.width, py);
-				ctx.stroke();
+			for (let y = 0; y < board.rows; y++) {
+				for (let x = 0; x < board.cols; x++) {
+					const hexX = x * TILE * 0.75;
+					const hexY = y * TILE * Math.sqrt(3) / 2;
+					drawHexagon(ctx, hexX, hexY, TILE);
+					ctx.stroke();
+				}
 			}
 		}
 
-		// Movable tiles for selected unit
+		// Movable hexagons for selected unit
 		if (game.selected) {
 			const movable = board.movableTiles(game.selected, game.occupied);
 			ctx.fillStyle = 'rgba(96,165,250,0.15)';
 			for (const key of movable) {
 				const [sx, sy] = key.split(',').map(Number);
-				ctx.fillRect(sx * TILE + 2, sy * TILE + 2, TILE - 4, TILE - 4);
+				const hexX = sx * TILE * 0.75;
+				const hexY = sy * TILE * Math.sqrt(3) / 2;
+				drawHexagon(ctx, hexX, hexY, TILE);
+				ctx.fill();
 			}
 		}
 
 		// Units
 		for (const u of game.units) {
-			const cx = (u.x + 0.5) * TILE;
-			const cy = (u.y + 0.5) * TILE;
+			const cx = (u.x + 0.5) * TILE * 0.75;
+			const cy = (u.y + 0.5) * TILE * Math.sqrt(3) / 2;
 
 			// Image if loaded; otherwise fallback disc
 			let drewSprite = false;
@@ -233,8 +251,8 @@ export default function CanvasLayer({
 				if (rec && rec.status === 'loaded' && rec.img.naturalWidth > 0) {
 					ctx.drawImage(
 						rec.img,
-						u.x * TILE + 2,
-						u.y * TILE + 2,
+						cx - TILE / 2 + 2,
+						cy - TILE / 2 + 2,
 						TILE - 4,
 						TILE - 4
 					);
@@ -273,8 +291,8 @@ export default function CanvasLayer({
 
 			// HP circle badge (top-right)
 			const r = Math.max(10, Math.floor(TILE * 0.16));
-			const bx = (u.x + 1) * TILE - r - 4;
-			const by = u.y * TILE + r + 4;
+			const bx = cx + r + 4;
+			const by = cy - r - 4;
 			let fill = '#22c55e';
 			if (ratio <= 0.33) fill = '#ef4444';
 			else if (ratio <= 0.66) fill = '#eab308';
@@ -300,8 +318,8 @@ export default function CanvasLayer({
 			const u = game.selected;
 			const w = u.weapons?.[0];
 			if (w) {
-				const cx = (u.x + 0.5) * TILE;
-				const cy = (u.y + 0.5) * TILE;
+				const cx = (u.x + 0.5) * TILE * 0.75;
+				const cy = (u.y + 0.5) * TILE * Math.sqrt(3) / 2;
 				ctx.strokeStyle = '#f59e0b';
 				ctx.lineWidth = 2;
 				const rr = (w.range + 0.5) * TILE;
@@ -313,7 +331,7 @@ export default function CanvasLayer({
 
 		// --- EFFECTS / ANIMATIONS ---
 		const now = performance.now();
-		const center = (p) => ({ x: (p.x + 0.5) * TILE, y: (p.y + 0.5) * TILE });
+		const center = (p) => ({ x: (p.x + 0.5) * TILE * 0.75, y: (p.y + 0.5) * TILE * Math.sqrt(3) / 2 });
 		const active = [];
 		for (const fx of effectsRef.current) {
 			const delay = fx.delay ?? 0;
@@ -419,14 +437,16 @@ export default function CanvasLayer({
 		if (active.length) ensureRAF();
 	}, [board, game, gridVisible, scale, size, animTick, imgVersion]);
 
-	// Click → tile coords
+	// Click → hexagonal tile coords
 	const onClick = (e) => {
 		const rect = e.currentTarget.getBoundingClientRect();
 		const px = e.clientX - rect.left;
 		const py = e.clientY - rect.top;
 		const TILE = board.tile * scale;
-		const x = Math.max(0, Math.min(board.cols - 1, Math.floor(px / TILE)));
-		const y = Math.max(0, Math.min(board.rows - 1, Math.floor(py / TILE)));
+		const q = (px * 2) / (3 * TILE);
+		const r = ((-px / 3) + (Math.sqrt(3) / 3) * py) / (TILE * Math.sqrt(3) / 2);
+		const x = Math.round(q);
+		const y = Math.round(r);
 		onTileClick(x, y);
 	};
 
