@@ -170,13 +170,13 @@ export default function CanvasLayer({
 		};
 
 		// Render hexagonal grid with staggered alignment
-		const renderHexGrid = (ctx) => {
-			for (let row = 0; row < board.rows; row++) {
-				for (let col = 0; col < board.cols; col++) {
-					const xOffset = col * TILE * Math.sqrt(3);
-					const yOffset = row * TILE * 1.5;
-					if (col % 2 !== 0) yOffset += TILE * 0.75;  // Apply stagger for odd rows
-					drawHexagon(ctx, xOffset, yOffset, TILE / 2);
+		const renderHexGrid = (ctx, rows, cols) => {
+			for (let row = 0; row < rows; row++) {
+				for (let col = 0; col < cols; col++) {
+					let xOffset = (row % 2) * (TILE * Math.sqrt(3) / 2);
+					let x = col * TILE * Math.sqrt(3) + xOffset;
+					let y = row * (TILE * 1.5);
+					drawHexagon(ctx, x, y, TILE / 2);
 					if (gridVisible) ctx.stroke();
 				}
 			}
@@ -199,8 +199,8 @@ export default function CanvasLayer({
 					const terrainType = board.getTerrain(col, row);
 					if (terrainType && terrainType !== 'plain') {
 						ctx.fillStyle = terrainFill[terrainType] || 'rgba(255,255,255,0.08)';
-						const hexX = col * TILE * Math.sqrt(3);
-						const hexY = row * TILE * 1.5;
+						let hexX = col * TILE * Math.sqrt(3);
+						let hexY = row * TILE * 1.5;
 						if (col % 2 !== 0) hexY += TILE * 0.75; // Apply stagger for odd rows
 						drawHexagon(ctx, hexX, hexY, TILE / 2);
 						ctx.fill();
@@ -210,7 +210,7 @@ export default function CanvasLayer({
 		}
 
 		// Render the hexagonal grid
-		renderHexGrid(ctx);
+		renderHexGrid(ctx, board.rows, board.cols);
 
 		// Movable hexagons for selected unit
 		if (game.selected) {
@@ -218,8 +218,8 @@ export default function CanvasLayer({
 			ctx.fillStyle = 'rgba(96,165,250,0.15)';
 			for (const key of movable) {
 				const [sx, sy] = key.split(',').map(Number);
-				const hexX = sx * TILE * Math.sqrt(3);
-				const hexY = sy * TILE * 1.5;
+				let hexX = sx * TILE * Math.sqrt(3);
+				let hexY = sy * TILE * 1.5;
 				if (sx % 2 !== 0) hexY += TILE * 0.75; // Apply stagger for odd columns
 				drawHexagon(ctx, hexX, hexY, TILE / 2);
 				ctx.fill();
@@ -247,8 +247,8 @@ export default function CanvasLayer({
 
 		// Units
 		for (const unit of game.units) {
-			const cx = unit.x * TILE * Math.sqrt(3) + TILE * Math.sqrt(3) / 2;
-			const cy = unit.y * TILE * 1.5 + TILE;
+			let cx = unit.x * TILE * Math.sqrt(3) + TILE * Math.sqrt(3) / 2;
+			let cy = unit.y * TILE * 1.5 + TILE;
 			if (unit.x % 2 !== 0) cy += TILE * 0.75;
 
 			// Use getSprite function to get the unit image
@@ -295,8 +295,8 @@ export default function CanvasLayer({
 			const unit = game.selected;
 			const weapon = unit.weapons?.[0];
 			if (weapon) {
-				const cx = unit.x * TILE * Math.sqrt(3) + TILE * Math.sqrt(3) / 2;
-				const cy = unit.y * TILE * 1.5 + TILE;
+				let cx = unit.x * TILE * Math.sqrt(3) + TILE * Math.sqrt(3) / 2;
+				let cy = unit.y * TILE * 1.5 + TILE;
 				if (unit.x % 2 !== 0) cy += TILE * 0.75;
 				ctx.strokeStyle = '#f59e0b';
 				ctx.lineWidth = 2;
