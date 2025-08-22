@@ -158,12 +158,11 @@ export default function CanvasLayer({
 		// Function to draw a hexagon - adjusted to align properly edge-to-edge
 		const drawHexagon = (ctx, x, y, size) => {
 			const sideLength = size / Math.sqrt(3);  // Corrected side length for proper alignment
-			const width = sideLength * Math.sqrt(3);
 			ctx.beginPath();
 			for (let i = 0; i < 6; i++) {
 				const angle = (Math.PI / 3) * i;
-				const newX = x + width * Math.cos(angle);
-				const newY = y + width * Math.sin(angle);
+				const newX = x + sideLength * Math.cos(angle);
+				const newY = y + sideLength * Math.sin(angle);
 				if (i === 0) {
 					ctx.moveTo(newX, newY);
 				} else {
