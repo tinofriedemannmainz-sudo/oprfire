@@ -44,14 +44,14 @@ export default function CanvasLayer({
 	const [animTick, setAnimTick] = useState(0);
 
 	const [size, setSize] = useState(() => ({
-		width: board.cols * board.tile * scale,
-		height: board.rows * board.tile * scale,
+		width: board.cols * board.tile * scale * 0.75,  // adjusted for horizontal width
+		height: board.rows * board.tile * scale * (Math.sqrt(3) / 2), // adjusted for vertical height
 	}));
 
 	useEffect(() => {
 		setSize({
-			width: board.cols * board.tile * scale,
-			height: board.rows * board.tile * scale,
+			width: board.cols * board.tile * scale * 0.75,
+			height: board.rows * board.tile * scale * (Math.sqrt(3) / 2),
 		});
 	}, [board, scale]);
 
@@ -155,16 +155,15 @@ export default function CanvasLayer({
 
 		const TILE = board.tile * scale;
 
-		// Function to draw a hexagon
+		// Function to draw a hexagon - adjusted to align properly edge-to-edge
 		const drawHexagon = (ctx, x, y, size) => {
-			const sideLength = size / 2;
-			const width = Math.sqrt(3) * sideLength;
-			const height = 2 * sideLength;
+			const sideLength = size / Math.sqrt(3);  // Corrected side length for proper alignment
+			const width = sideLength * Math.sqrt(3);
 			ctx.beginPath();
 			for (let i = 0; i < 6; i++) {
 				const angle = (Math.PI / 3) * i;
 				const newX = x + width * Math.cos(angle);
-				const newY = y + height * Math.sin(angle);
+				const newY = y + width * Math.sin(angle);
 				if (i === 0) {
 					ctx.moveTo(newX, newY);
 				} else {
@@ -203,6 +202,7 @@ export default function CanvasLayer({
 						) {
 							ctx.strokeStyle = 'rgba(255,255,255,0.06)';
 							ctx.lineWidth = 1;
+							ctx.beginPath();
 							ctx.moveTo(hexX + TILE * 0.2, hexY + TILE * 0.3);
 							ctx.lineTo(hexX + TILE * 0.5, hexY + TILE * 0.1);
 							ctx.stroke();
