@@ -244,7 +244,12 @@ export default function CanvasLayer({
 			const iconSize = size * 0.8; // Slightly smaller than the hexagon
 			const iconX = cx - iconSize / 2;
 			const iconY = cy - iconSize / 2;
+			ctx.save();
+			ctx.beginPath();
+			drawHexagon(ctx, cx - size / 2, cy - size / 2, size); // Create a hexagonal clipping region
+			ctx.clip();
 			ctx.drawImage(image, iconX, iconY, iconSize, iconSize);
+			ctx.restore();
 		};
 
 		// Units
