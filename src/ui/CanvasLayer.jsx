@@ -239,64 +239,24 @@ export default function CanvasLayer({
 			}
 		}
 
-		// Units
-		const drawUnitHex = (ctx, cx, cy, size, unitColor, strokeColor, lineWidth) => {
-			const width = size / Math.sqrt(3) * Math.sqrt(3); // Correct width for hexagon
-			ctx.beginPath();
-			for (let i = 0; i < 6; i++) {
-				const angle = (Math.PI / 3) * i;
-				const newX = cx + width * Math.cos(angle);
-				const newY = cy + width * Math.sin(angle);
-				if (i === 0) {
-					ctx.moveTo(newX, newY);
-				} else {
-					ctx.lineTo(newX, newY);
-				}
-			}
-			ctx.closePath();
-			ctx.fillStyle = unitColor;
-			ctx.fill();
-			ctx.lineWidth = lineWidth;
-			ctx.strokeStyle = strokeColor;
-			ctx.stroke();
+		// Function to draw a unit icon within the hexagon
+		const drawUnitIcon = (ctx, image, cx, cy, size) => {
+			const iconSize = size * 0.8; // Slightly smaller than the hexagon
+			const iconX = cx - iconSize / 2;
+			const iconY = cy - iconSize / 2;
+			ctx.drawImage(image, iconX, iconY, iconSize, iconSize);
 		};
 
+		// Units
 		for (const u of game.units) {
 			const cx = (u.x + 0.5) * TILE * 0.75;
 			const cy = (u.y + 0.5) * TILE * Math.sqrt(3) / 2;
 
-			let unitColor = u.faction === 'A' ? '#60a5fa' : '#f87171';
-			let strokeColor = game.selected && game.selected.id === u.id ? '#f59e0b' : u.faction === 'A' ? '#1d4ed8' : '#b91c1c';
-			let lineWidth = game.selected && game.selected.id === u.id ? 5 : 3;
-
-			if (u.exhausted) {
-				unitColor = `rgba(0,0,0,0.35)`;
-				strokeColor = `rgba(0,0,0,0.5)`;
+			// Use getSprite function to get the unit image
+			const sprite = getSprite(u.iconUrl);
+			if (sprite && sprite.status === 'loaded') {
+				drawUnitIcon(ctx, sprite.img, cx, cy, TILE);
 			}
-
-			drawUnitHex(ctx, cx, cy, TILE * 0.7, unitColor, strokeColor, lineWidth);
-
-			// HP circle badge (top-right)
-			const r = Math.max(10, Math.floor(TILE * 0.16));
-			const bx = cx + r + 4;
-			const by = cy - r - 4;
-			let fill = '#22c55e';
-			const ratio = Math.max(0, u.hp / u.maxHp);
-			if (ratio <= 0.33) fill = '#ef4444';
-			else if (ratio <= 0.66) fill = '#eab308';
-			ctx.beginPath();
-			ctx.arc(bx, by, r, 0, Math.PI * 2);
-			ctx.fillStyle = fill;
-			ctx.fill();
-			ctx.lineWidth = 2;
-			ctx.strokeStyle = 'rgba(0,0,0,0.65)';
-			ctx.stroke();
-			ctx.fillStyle = '#fff';
-			ctx.font = `bold ${Math.max(10, Math.floor(r * 1.1))}px system-ui, sans-serif`;
-			ctx.textAlign = 'center';
-			ctx.textBaseline = 'middle';
-			ctx.fillText(String(Math.max(0, u.hp)), bx, by);
-		}
 
 			// HP bar
 			const barW = TILE * 0.8;
