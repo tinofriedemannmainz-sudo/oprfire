@@ -4,7 +4,7 @@ export class Board {
 		this.rows = rows;
 		this.tile = tile;
 		// simple per-tile terrain: 'plain' | 'cover' | 'difficult' | 'dangerous' | 'blocker'
-		this.terrain = Array.from({ length: rows }, () => Array.from({ length: cols }, () => 'plain'));
+		this.terrain = Array.from({ length: rows }, () => Array(cols).fill('plain'));
 	}
 
 	key(hex) {
@@ -84,12 +84,12 @@ export class Board {
 		this.clearTerrain();
 		for (let r = 0; r < this.rows; r++) {
 			for (let q = 0; q < this.cols; q++) {
-				if (q < keepEdges || q >= this.cols - keepEdges) continue;
-				const r = Math.random();
-				if (r < blocker) this.terrain[r][q] = 'blocker';
-				else if (r < blocker + cover) this.terrain[r][q] = 'cover';
-				else if (r < blocker + cover + difficult) this.terrain[r][q] = 'difficult';
-				else if (r < blocker + cover + difficult + dangerous) this.terrain[r][q] = 'dangerous';
+				if (q < keepEdges || q >= this.cols - keepEdges || r < keepEdges || r >= this.rows - keepEdges) continue;
+				const rand = Math.random();
+				if (rand < blocker) this.terrain[r][q] = 'blocker';
+				else if (rand < blocker + cover) this.terrain[r][q] = 'cover';
+				else if (rand < blocker + cover + difficult) this.terrain[r][q] = 'difficult';
+				else if (rand < blocker + cover + difficult + dangerous) this.terrain[r][q] = 'dangerous';
 			}
 		}
 	}
