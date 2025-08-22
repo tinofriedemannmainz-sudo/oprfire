@@ -155,28 +155,38 @@ export default function CanvasLayer({
 
 		const TILE = board.tile * scale;
 
-		// Function to draw a hexagon - adjusted for perfect edge-to-edge alignment
+		// Function to draw a hexagon with proper staggered alignment
 		const drawHexagon = (ctx, x, y, size) => {
-			const sideLength = size;  // Side length corrected for edge-to-edge alignment
+			const height = size * 2;
+			const width = Math.sqrt(3) * size;
 			ctx.beginPath();
-			for (let i = 0; i < 6; i++) {
-				const angle = (Math.PI / 3) * i;
-				const newX = x + sideLength * Math.cos(angle);
-				const newY = y + sideLength * Math.sin(angle);
-				if (i === 0) {
-					ctx.moveTo(newX, newY);
-				} else {
-					ctx.lineTo(newX, newY);
+			ctx.moveTo(x, y - size);
+			ctx.lineTo(x + width / 2, y - size / 2);
+			ctx.lineTo(x + width / 2, y + size / 2);
+			ctx.lineTo(x, y + size);
+			ctx.lineTo(x - width / 2, y + size / 2);
+			ctx.lineTo(x - width / 2, y - size / 2);
+			ctx.closePath();
+		};
+
+		// Render hexagonal grid with staggered alignment
+		const renderHexGrid = (ctx) => {
+			for (let row = 0; row < board.rows; row++) {
+				for (let col = 0; col < board.cols; col++) {
+					const xOffset = col * TILE * Math.sqrt(3);
+					const yOffset = row * TILE * 1.5;
+					if (col % 2 !== 0) yOffset += TILE * 0.75;  // Apply stagger for odd rows
+					drawHexagon(ctx, xOffset, yOffset, TILE / 2);
+					if (gridVisible) ctx.stroke();
 				}
 			}
-			ctx.closePath();
 		};
 
 		// Background
 		ctx.fillStyle = '#0b0b0b';
 		ctx.fillRect(0, 0, size.width, size.height);
 
-		// --- Terrain hexagons (subtle tints) ---
+		// Terrain hexagons (subtle tints)
 		const terrainFill = {
 			cover: 'rgba(34,197,94,0.15)', // green
 			difficult: 'rgba(168,85,33,0.15)', // brown
@@ -184,46 +194,23 @@ export default function CanvasLayer({
 			blocker: 'rgba(148,163,184,0.25)', // slate
 		};
 		if (typeof board.getTerrain === 'function') {
-			for (let y = 0; y < board.rows; y++) {
-				for (let x = 0; x < board.cols; x++) {
-					const kind = board.getTerrain(x, y);
-					if (kind && kind !== 'plain') {
-						ctx.fillStyle = terrainFill[kind] || 'rgba(255,255,255,0.08)';
-						const hexX = x * TILE * Math.sqrt(3);
-						const hexY = y * TILE * 1.5;
-						drawHexagon(ctx, hexX, hexY, TILE);
+			for (let row = 0; row < board.rows; row++) {
+				for (let col = 0; col < board.cols; col++) {
+					const terrainType = board.getTerrain(col, row);
+					if (terrainType && terrainType !== 'plain') {
+						ctx.fillStyle = terrainFill[terrainType] || 'rgba(255,255,255,0.08)';
+						const hexX = col * TILE * Math.sqrt(3);
+						const hexY = row * TILE * 1.5;
+						if (col % 2 !== 0) hexY += TILE * 0.75; // Apply stagger for odd rows
+						drawHexagon(ctx, hexX, hexY, TILE / 2);
 						ctx.fill();
-						// hatch for hard-ish terrain
-						if (
-							kind === 'difficult' ||
-							kind === 'dangerous' ||
-							kind === 'blocker'
-						) {
-							ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-							ctx.lineWidth = 1;
-							ctx.beginPath();
-							ctx.moveTo(hexX + TILE * 0.2, hexY + TILE * 0.3);
-							ctx.lineTo(hexX + TILE * 0.5, hexY + TILE * 0.1);
-							ctx.stroke();
-						}
 					}
 				}
 			}
 		}
 
-		// Grid
-		if (gridVisible) {
-			ctx.strokeStyle = '#1f2937';
-			ctx.lineWidth = 1;
-			for (let y = 0; y < board.rows; y++) {
-				for (let x = 0; x < board.cols; x++) {
-					const hexX = x * TILE * Math.sqrt(3);
-					const hexY = y * TILE * 1.5;
-					drawHexagon(ctx, hexX, hexY, TILE);
-					ctx.stroke();
-				}
-			}
-		}
+		// Render the hexagonal grid
+		renderHexGrid(ctx);
 
 		// Movable hexagons for selected unit
 		if (game.selected) {
@@ -233,33 +220,41 @@ export default function CanvasLayer({
 				const [sx, sy] = key.split(',').map(Number);
 				const hexX = sx * TILE * Math.sqrt(3);
 				const hexY = sy * TILE * 1.5;
-				drawHexagon(ctx, hexX, hexY, TILE);
+				if (sx % 2 !== 0) hexY += TILE * 0.75; // Apply stagger for odd columns
+				drawHexagon(ctx, hexX, hexY, TILE / 2);
 				ctx.fill();
 			}
 		}
 
-		// Function to draw a unit icon within the hexagon
+		// Function to draw a unit icon within the hexagon fitting correctly
 		const drawUnitIcon = (ctx, image, cx, cy, size) => {
-			const iconSize = size; // The size to fill the hexagon
+			const iconSize = size * 1.6 / Math.sqrt(3); // Adjust size to fit within hexagon
 			const iconX = cx - iconSize / 2;
-			const iconY = cy - iconSize / 2;
+			const iconY = cy - size / 4; // Adjust position for hexagon
 			ctx.save();
 			ctx.beginPath();
-			drawHexagon(ctx, cx - size / 2, cy - size / 2, size); // Create a hexagonal clipping region
+			ctx.moveTo(cx, cy - size / 2);
+			ctx.lineTo(cx + iconSize / Math.sqrt(3), cy - size / 4);
+			ctx.lineTo(cx + iconSize / Math.sqrt(3), cy + size / 4);
+			ctx.lineTo(cx, cy + size / 2);
+			ctx.lineTo(cx - iconSize / Math.sqrt(3), cy + size / 4);
+			ctx.lineTo(cx - iconSize / Math.sqrt(3), cy - size / 4);
+			ctx.closePath();
 			ctx.clip();
 			ctx.drawImage(image, iconX, iconY, iconSize, iconSize);
 			ctx.restore();
 		};
 
 		// Units
-		for (const u of game.units) {
-			const cx = (u.x + 0.5) * TILE * Math.sqrt(3);
-			const cy = (u.y + 0.5) * TILE * 1.5;
+		for (const unit of game.units) {
+			const cx = unit.x * TILE * Math.sqrt(3) + TILE * Math.sqrt(3) / 2;
+			const cy = unit.y * TILE * 1.5 + TILE;
+			if (unit.x % 2 !== 0) cy += TILE * 0.75;
 
 			// Use getSprite function to get the unit image
-			const sprite = getSprite(u.iconUrl);
+			const sprite = getSprite(unit.iconUrl);
 			if (sprite && sprite.status === 'loaded') {
-				drawUnitIcon(ctx, sprite.img, cx, cy, TILE);
+				drawUnitIcon(ctx, sprite.img, cx, cy, TILE / 2);
 			}
 
 			// HP bar
@@ -267,20 +262,20 @@ export default function CanvasLayer({
 			const barH = 8;
 			ctx.fillStyle = 'rgba(0,0,0,0.45)';
 			ctx.fillRect(cx - barW / 2, cy + TILE * 0.4, barW, barH);
-			const ratio = Math.max(0, u.hp / u.maxHp);
+			const ratio = Math.max(0, unit.hp / unit.maxHp);
 			ctx.fillStyle = '#10b981';
 			ctx.fillRect(cx - barW / 2, cy + TILE * 0.4, barW * ratio, barH);
 
 			// HP circle badge (top-right)
-			const r = Math.max(10, Math.floor(TILE * 0.16));
-			const bx = cx + r + 4;
-			const by = cy - r - 4;
-			let fill = '#22c55e';
-			if (ratio <= 0.33) fill = '#ef4444';
-			else if (ratio <= 0.66) fill = '#eab308';
+			const radius = Math.max(10, Math.floor(TILE * 0.16));
+			const badgeX = cx + radius + 4;
+			const badgeY = cy - radius - 4;
+			let fillColor = '#22c55e';
+			if (ratio <= 0.33) fillColor = '#ef4444';
+			else if (ratio <= 0.66) fillColor = '#eab308';
 			ctx.beginPath();
-			ctx.arc(bx, by, r, 0, Math.PI * 2);
-			ctx.fillStyle = fill;
+			ctx.arc(badgeX, badgeY, radius, 0, Math.PI * 2);
+			ctx.fillStyle = fillColor;
 			ctx.fill();
 			ctx.lineWidth = 2;
 			ctx.strokeStyle = 'rgba(0,0,0,0.65)';
@@ -288,44 +283,49 @@ export default function CanvasLayer({
 			ctx.fillStyle = '#fff';
 			ctx.font = `bold ${Math.max(
 				10,
-				Math.floor(r * 1.1)
+				Math.floor(radius * 1.1)
 			)}px system-ui, sans-serif`;
 			ctx.textAlign = 'center';
 			ctx.textBaseline = 'middle';
-			ctx.fillText(String(Math.max(0, u.hp)), bx, by);
+			ctx.fillText(String(Math.max(0, unit.hp)), badgeX, badgeY);
 		}
 
 		// Selected range ring (uses first weapon)
 		if (game.selected) {
-			const u = game.selected;
-			const w = u.weapons?.[0];
-			if (w) {
-				const cx = (u.x + 0.5) * TILE * Math.sqrt(3);
-				const cy = (u.y + 0.5) * TILE * 1.5;
+			const unit = game.selected;
+			const weapon = unit.weapons?.[0];
+			if (weapon) {
+				const cx = unit.x * TILE * Math.sqrt(3) + TILE * Math.sqrt(3) / 2;
+				const cy = unit.y * TILE * 1.5 + TILE;
+				if (unit.x % 2 !== 0) cy += TILE * 0.75;
 				ctx.strokeStyle = '#f59e0b';
 				ctx.lineWidth = 2;
-				const rr = (w.range + 0.5) * TILE;
+				const rangeRadius = (weapon.range + 0.5) * TILE;
 				ctx.beginPath();
-				ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+				ctx.arc(cx, cy, rangeRadius, 0, Math.PI * 2);
 				ctx.stroke();
 			}
 		}
 
 		// --- EFFECTS / ANIMATIONS ---
 		const now = performance.now();
-		const center = (p) => ({ x: (p.x + 0.5) * TILE * Math.sqrt(3), y: (p.y + 0.5) * TILE * 1.5 });
-		const active = [];
+		const center = (pos) => ({
+			x: pos.x * TILE * Math.sqrt(3) + TILE * Math.sqrt(3) / 2,
+			y: pos.y * TILE * 1.5 + TILE,
+			...((pos.x % 2 !== 0) && { y: pos.y * TILE * 1.5 + TILE + TILE * 0.75 })
+		});
+		const activeEffects = [];
 		for (const fx of effectsRef.current) {
 			const delay = fx.delay ?? 0;
 			const t = (now - fx.t0 - delay) / fx.dur;
 			if (t < 0) {
-				active.push(fx);
+				activeEffects.push(fx);
 				continue; // not started yet
 			}
 			if (t >= 1) {
 				continue; // finished
 			}
-			active.push(fx);
+			activeEffects.push(fx);
 			const ease = t * (2 - t); // ease-out
 
 			if (fx.type === 'slash') {
@@ -381,14 +381,14 @@ export default function CanvasLayer({
 				ctx.save();
 				ctx.globalAlpha = alpha;
 				// Background box
-				const text = fx.lines;
+				const textLines = fx.lines;
 				ctx.font = `12px system-ui, sans-serif`;
 				const w =
-					(text.length
-						? Math.max(...text.map((s) => ctx.measureText(s).width))
+					(textLines.length
+						? Math.max(...textLines.map((s) => ctx.measureText(s).width))
 						: 0) +
 					pad * 2;
-				const h = text.length * 16 + pad * 2;
+				const h = textLines.length * 16 + pad * 2;
 				const x = c.x + 10;
 				const y = c.y - TILE * 0.7;
 				ctx.fillStyle = 'rgba(17,24,39,0.9)'; // dark
@@ -408,15 +408,15 @@ export default function CanvasLayer({
 				ctx.textAlign = 'left';
 				ctx.textBaseline = 'top';
 				let ty = y + pad;
-				for (const s of text) {
+				for (const s of textLines) {
 					ctx.fillText(s, x + pad, ty);
 					ty += 16;
 				}
 				ctx.restore();
 			}
 		}
-		effectsRef.current = active;
-		if (active.length) ensureRAF();
+		effectsRef.current = activeEffects;
+		if (activeEffects.length) ensureRAF();
 	}, [board, game, gridVisible, scale, size, animTick, imgVersion]);
 
 	// Click → hexagonal tile coords
