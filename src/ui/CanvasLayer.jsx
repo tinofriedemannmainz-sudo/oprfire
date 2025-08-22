@@ -44,14 +44,14 @@ export default function CanvasLayer({
 	const [animTick, setAnimTick] = useState(0);
 
 	const [size, setSize] = useState(() => ({
-		width: board.cols * board.tile * scale * 0.75,  // adjusted for horizontal width
-		height: board.rows * board.tile * scale * (Math.sqrt(3) / 2), // adjusted for vertical height
+		width: board.cols * board.tile * scale * Math.sqrt(3),  // adjusted for horizontal width with exact hexagonal tiling
+		height: board.rows * board.tile * scale * 1.5, // adjusted for vertical height with exact hexagonal tiling
 	}));
 
 	useEffect(() => {
 		setSize({
-			width: board.cols * board.tile * scale * 0.75,
-			height: board.rows * board.tile * scale * (Math.sqrt(3) / 2),
+			width: board.cols * board.tile * scale * Math.sqrt(3),
+			height: board.rows * board.tile * scale * 1.5,
 		});
 	}, [board, scale]);
 
@@ -155,9 +155,9 @@ export default function CanvasLayer({
 
 		const TILE = board.tile * scale;
 
-		// Function to draw a hexagon - adjusted to align properly edge-to-edge
+		// Function to draw a hexagon - adjusted for perfect edge-to-edge alignment
 		const drawHexagon = (ctx, x, y, size) => {
-			const sideLength = size / Math.sqrt(3);  // Corrected side length for proper alignment
+			const sideLength = size;  // Side length corrected for edge-to-edge alignment
 			ctx.beginPath();
 			for (let i = 0; i < 6; i++) {
 				const angle = (Math.PI / 3) * i;
@@ -189,8 +189,8 @@ export default function CanvasLayer({
 					const kind = board.getTerrain(x, y);
 					if (kind && kind !== 'plain') {
 						ctx.fillStyle = terrainFill[kind] || 'rgba(255,255,255,0.08)';
-						const hexX = x * TILE * 0.75;
-						const hexY = y * TILE * Math.sqrt(3) / 2;
+						const hexX = x * TILE * Math.sqrt(3);
+						const hexY = y * TILE * 1.5;
 						drawHexagon(ctx, hexX, hexY, TILE);
 						ctx.fill();
 						// hatch for hard-ish terrain
@@ -217,8 +217,8 @@ export default function CanvasLayer({
 			ctx.lineWidth = 1;
 			for (let y = 0; y < board.rows; y++) {
 				for (let x = 0; x < board.cols; x++) {
-					const hexX = x * TILE * 0.75;
-					const hexY = y * TILE * Math.sqrt(3) / 2;
+					const hexX = x * TILE * Math.sqrt(3);
+					const hexY = y * TILE * 1.5;
 					drawHexagon(ctx, hexX, hexY, TILE);
 					ctx.stroke();
 				}
@@ -231,8 +231,8 @@ export default function CanvasLayer({
 			ctx.fillStyle = 'rgba(96,165,250,0.15)';
 			for (const key of movable) {
 				const [sx, sy] = key.split(',').map(Number);
-				const hexX = sx * TILE * 0.75;
-				const hexY = sy * TILE * Math.sqrt(3) / 2;
+				const hexX = sx * TILE * Math.sqrt(3);
+				const hexY = sy * TILE * 1.5;
 				drawHexagon(ctx, hexX, hexY, TILE);
 				ctx.fill();
 			}
@@ -240,7 +240,7 @@ export default function CanvasLayer({
 
 		// Function to draw a unit icon within the hexagon
 		const drawUnitIcon = (ctx, image, cx, cy, size) => {
-			const iconSize = size * 0.8; // Slightly smaller than the hexagon
+			const iconSize = size; // The size to fill the hexagon
 			const iconX = cx - iconSize / 2;
 			const iconY = cy - iconSize / 2;
 			ctx.save();
@@ -253,8 +253,8 @@ export default function CanvasLayer({
 
 		// Units
 		for (const u of game.units) {
-			const cx = (u.x + 0.5) * TILE * 0.75;
-			const cy = (u.y + 0.5) * TILE * Math.sqrt(3) / 2;
+			const cx = (u.x + 0.5) * TILE * Math.sqrt(3);
+			const cy = (u.y + 0.5) * TILE * 1.5;
 
 			// Use getSprite function to get the unit image
 			const sprite = getSprite(u.iconUrl);
@@ -300,8 +300,8 @@ export default function CanvasLayer({
 			const u = game.selected;
 			const w = u.weapons?.[0];
 			if (w) {
-				const cx = (u.x + 0.5) * TILE * 0.75;
-				const cy = (u.y + 0.5) * TILE * Math.sqrt(3) / 2;
+				const cx = (u.x + 0.5) * TILE * Math.sqrt(3);
+				const cy = (u.y + 0.5) * TILE * 1.5;
 				ctx.strokeStyle = '#f59e0b';
 				ctx.lineWidth = 2;
 				const rr = (w.range + 0.5) * TILE;
@@ -313,7 +313,7 @@ export default function CanvasLayer({
 
 		// --- EFFECTS / ANIMATIONS ---
 		const now = performance.now();
-		const center = (p) => ({ x: (p.x + 0.5) * TILE * 0.75, y: (p.y + 0.5) * TILE * Math.sqrt(3) / 2 });
+		const center = (p) => ({ x: (p.x + 0.5) * TILE * Math.sqrt(3), y: (p.y + 0.5) * TILE * 1.5 });
 		const active = [];
 		for (const fx of effectsRef.current) {
 			const delay = fx.delay ?? 0;
@@ -426,7 +426,7 @@ export default function CanvasLayer({
 		const py = e.clientY - rect.top;
 		const TILE = board.tile * scale;
 		const q = (px * 2) / (3 * TILE);
-		const r = ((-px / 3) + (Math.sqrt(3) / 3) * py) / (TILE * Math.sqrt(3) / 2);
+		const r = ((-px / 3) + (Math.sqrt(3) / 3) * py) / (TILE * 1.5);
 		const x = Math.round(q);
 		const y = Math.round(r);
 		onTileClick(x, y);
