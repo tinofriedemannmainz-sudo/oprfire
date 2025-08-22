@@ -1,0 +1,42 @@
+{
+	"id": "zeta",
+	"name": "Zeta Squadron",
+	"units": [
+		{
+			"type": "sentinel",
+			"image": "/assets/units/zeta-sentinel.png",
+			"hp": 4,
+			"move": 5,
+			"count": 3,
+			"quality": 3,
+			"defense": 3,
+			"weapons": [
+				{
+					"name": "Laser Blaster",
+					"range": 2,
+					"dmg": 2,
+					"hits": 1,
+					"specials": ["Piercing(2)"]
+				}
+			]
+		},
+		{
+			"type": "tank",
+			"image": "/assets/units/zeta-tank.png",
+			"hp": 10,
+			"move": 3,
+			"count": 1,
+			"quality": 4,
+			"defense": 2,
+			"weapons": [
+				{
+					"name": "Cannon",
+					"range": 3,
+					"dmg": 4,
+					"hits": 1,
+					"specials": ["Explosive"]
+				}
+			]
+		}
+	]
+}
